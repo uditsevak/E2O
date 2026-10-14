@@ -92,7 +92,7 @@ def test_octet_stream_pdf_is_sniffed_and_forwarded_email_kept_whole() -> None:
     assert parsed.body_text == "see below"
     kinds = [(a.filename, a.content_type) for a in parsed.attachments]
     assert kinds[0] == ("drawing", "application/pdf")
-    assert kinds[1][1] == "message/rfc822" and kinds[1][0].endswith(".eml")
+    assert kinds[1] == ("Original enquiry.eml", "message/rfc822")
     assert b"Original enquiry" in parsed.attachments[1].data
 
 
@@ -132,3 +132,22 @@ def test_html_to_text_keeps_structure() -> None:
     text = html_to_text("<div>Line 1</div><div>Line&nbsp;2<br>Line 3</div><ul><li>a</li><li>b</li></ul>")
     assert text.split("\n")[0] == "Line 1"
     assert "Line 2" in text and "Line 3" in text
+
+
+def test_base64_encoded_forwarded_email_is_decoded() -> None:
+    """Some clients base64-encode attached emails. The attachment must hold the real email."""
+    import base64 as b64
+
+    inner = make_email(subject="Enquiry: shutdown job flanges", body="Need 16 nos WNRF 8in #300")
+    encoded = b64.encodebytes(inner)
+    outer = (
+        b"From: sales@dc.in\r\nSubject: Fwd: enquiry\r\nMIME-Version: 1.0\r\n"
+        b"Content-Type: multipart/mixed; boundary=B\r\n\r\n"
+        b"--B\r\nContent-Type: text/plain\r\n\r\nPlease check\r\n"
+        b"--B\r\nContent-Type: message/rfc822\r\nContent-Transfer-Encoding: base64\r\n"
+        b"Content-Disposition: attachment\r\n\r\n" + encoded + b"--B--\r\n"
+    )
+    [att] = parse_email(outer).attachments
+    assert att.filename == "Enquiry: shutdown job flanges.eml"
+    assert b"Need 16 nos WNRF" in att.data
+    assert parse_email(att.data).subject == "Enquiry: shutdown job flanges"

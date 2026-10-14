@@ -6,8 +6,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.jobs.tasks import enqueue_processing, enqueue_sync, schedule_syncs
 from app.models import Direction, RawMessage, SourceStatus
+from app.pipeline.email_parser import PARSER_VERSION
 from tests.conftest import SignedIn
-from tests.factories import make_source
+from tests.factories import make_message, make_source
 
 
 def _queued(jobs: InMemoryConnector, task: str) -> list[dict]:
@@ -55,3 +56,19 @@ async def test_scheduler_queues_due_sources_and_orphans(
 
     assert _queued(jobs, "sync_source") == [{"source_id": str(due.id)}]
     assert _queued(jobs, "process_raw_message") == [{"raw_message_id": str(orphan.id)}]
+
+
+async def test_scheduler_reprocesses_messages_from_an_older_parser(
+    signed_in: SignedIn, db: AsyncSession, jobs: InMemoryConnector
+) -> None:
+    _, ws = await signed_in()
+    source = await make_source(db, uuid.UUID(ws["id"]))
+    current = await make_message(db, source, subject="current")
+    current.normalizer_version = PARSER_VERSION
+    outdated = await make_message(db, source, subject="outdated")
+    outdated.normalizer_version = PARSER_VERSION - 1
+    await db.commit()
+
+    await schedule_syncs(timestamp=0)
+
+    assert _queued(jobs, "process_raw_message") == [{"raw_message_id": str(outdated.raw_message_id)}]

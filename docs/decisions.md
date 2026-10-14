@@ -53,6 +53,8 @@ new line that supersedes it. Don't rewrite history.
 - **Charset fallback order: declared → UTF-8 → statistical detection (only for 200 bytes or more) → Windows-1252.** Detection on short text guesses CJK, and undeclared legacy mail here is mostly Windows-1252.
 - **Forwarded emails attached as `message/rfc822` are kept whole as `.eml` attachments.** Forwarded enquiries arrive this way and need their own extraction later.
 - **Wrong content types are corrected by sniffing** (PDFs sent as `application/octet-stream` are common). Extraction will route on the corrected type.
+- **Attached emails that were base64 or quoted-printable encoded get decoded, and the attachment is named after their subject.** The RFC forbids encoding them, but some mail clients do it, and otherwise the forwarded enquiry was lost. This was found with the seeded test mailbox.
+- **Raising `PARSER_VERSION` re-parses every stored email automatically** (the scheduler's sweep picks up outdated messages, 500 a minute). Parser fixes reach old mail without re-fetching it.
 - **HTML email is only shown in a sandboxed iframe with a CSP that blocks remote content.** No scripts and no tracking pixels.
 
 ### Frontend
@@ -63,3 +65,6 @@ new line that supersedes it. Don't rewrite history.
 - **Mobile-first:** bottom tab bar on phones, sidebar on desktop, native `<select>` so phones use the OS picker.
 - **Plain words: "Emails", "Mailboxes", "Team".** "Enquiries" becomes the main tab when the classifier lands, so the UI never shows an empty promise.
 - **The working name "Enquiry Inbox" appears only in the UI** (`PRODUCT_NAME`). Code and infrastructure use neutral names, so renaming is cosmetic.
+
+### Local setup
+- **The first-run path is Docker only** (`docker compose --profile dev-imap up --build`), with a GreenMail test mailbox and a seeder script with realistic sample enquiries. Anyone can see the product working in a few commands, without a real mailbox.

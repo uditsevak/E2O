@@ -5,12 +5,15 @@ forwarded emails attached as message/rfc822, PDFs sent as application/octet-stre
 never raises on bad input; problems are collected in `warnings`.
 """
 
+import base64
+import binascii
 import email
 import email.policy
 import email.utils
 import hashlib
 import html
 import mimetypes
+import quopri
 import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -20,7 +23,7 @@ from html.parser import HTMLParser
 
 from charset_normalizer import from_bytes
 
-PARSER_VERSION = 1
+PARSER_VERSION = 3
 
 MAX_BODY_TEXT_CHARS = 200_000
 MAX_BODY_HTML_CHARS = 1_000_000
@@ -281,14 +284,43 @@ def _safe_filename(name: str | None, content_type: str, index: int) -> str:
     return name[:250]
 
 
+_BASE64_TEXT = re.compile(rb"^[A-Za-z0-9+/=\s]+$")
+
+
+def _forwarded_name(data: bytes) -> str | None:
+    """Name an attached email after its subject: "Enquiry for flanges.eml"."""
+    try:
+        inner = email.message_from_bytes(data, policy=email.policy.default)
+        subject = re.sub(r"\s+", " ", str(inner.get("Subject") or "")).strip()
+    except Exception:  # noqa: BLE001
+        return None
+    return f"{subject[:120]}.eml" if subject else None
+
+
+def _rfc822_bytes(part: Message) -> bytes:
+    """Bytes of an attached email. Some mail clients base64- or QP-encode message/rfc822 parts
+    (not allowed by the RFC, seen in the wild); the parser then reads the encoded text as a
+    headerless message, so decode it back."""
+    inner = part.get_payload()
+    if isinstance(inner, list) and inner:
+        inner = inner[0]
+    if not isinstance(inner, Message):
+        return b""
+    data = inner.as_bytes(policy=email.policy.compat32)
+    encoding = str(part.get("Content-Transfer-Encoding") or "").strip().lower()
+    if encoding == "base64" and _BASE64_TEXT.match(data):
+        try:
+            return base64.b64decode(data)
+        except (binascii.Error, ValueError):
+            return data
+    if encoding == "quoted-printable":
+        return quopri.decodestring(data)
+    return data
+
+
 def _payload_bytes(part: Message) -> bytes:
     if part.get_content_type() == "message/rfc822":
-        inner = part.get_payload()
-        if isinstance(inner, list) and inner:
-            inner = inner[0]
-        if isinstance(inner, Message):
-            return inner.as_bytes(policy=email.policy.compat32)
-        return b""
+        return _rfc822_bytes(part)
     data = part.get_payload(decode=True)
     return data if isinstance(data, bytes) else b""
 
@@ -342,6 +374,8 @@ def parse_email(raw: bytes) -> ParsedEmail:
         if not data:
             continue
         index = len(out.attachments)
+        if not filename and content_type == "message/rfc822":
+            filename = _forwarded_name(data)
         safe_name = _safe_filename(filename, content_type, index)
         out.attachments.append(
             ParsedAttachment(

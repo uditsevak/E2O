@@ -35,18 +35,51 @@ frontend/   Next.js 16 app (App Router, Tailwind, shadcn/ui, TanStack Query)
 docs/       product context, decisions, dev notes
 ```
 
-## Run it
+## Run it on your computer
 
-### Everything in Docker
+You only need **Docker Desktop** (Windows / Mac) or Docker Engine (Linux).
 
 ```bash
-docker compose up --build
-# open http://localhost:3000
+git clone https://github.com/uditsevak/E2O.git
+cd E2O
+git checkout claude/pensive-euler-p6nl1o          # until this branch is merged
+
+# 1. Start everything, plus a fake mailbox to test with (first build takes a few minutes)
+docker compose --profile dev-imap up --build -d
+
+# 2. Put sample enquiries into the fake mailbox
+docker compose run --rm api python -m scripts.seed_dev_mailbox --host imap
 ```
 
-### Local development (hot reload)
+3. Open **http://localhost:3000**, create an account, and name your business.
+4. On **Connect a mailbox**, pick **Other (IMAP)** and enter:
+   - Email address: `sales@dcengineering.in`, Password: anything
+   - Server settings: IMAP server `imap`, port `3993`, security SSL
+   - Click **Test connection**, tick **Allow this server's certificate anyway** (the test server uses a
+     self-signed certificate), **Test connection** again, then **Connect mailbox**.
+5. Within a few seconds the 8 sample emails show up under **Emails** and **Overview**.
+
+You can also connect a real mailbox (Zoho, GoDaddy, Gmail with an app password, …). It all runs
+on your computer, so the mail stays there.
+
+| To… | Run |
+| --- | --- |
+| Stop (keeps your data) | `docker compose --profile dev-imap down` |
+| Start again | `docker compose --profile dev-imap up -d` |
+| Update after pulling new code | `docker compose --profile dev-imap up --build -d` |
+| Start from scratch (deletes all data) | `docker compose --profile dev-imap down -v` |
+| See what the sync worker is doing | `docker compose logs -f worker` |
+| Invite a teammate on the same computer | Team → Invite, then open the link in a private window |
+
+If startup fails with "port is already allocated", another program is using port 5432 (often a
+locally installed Postgres), 3000 or 8000. Stop it, or change the left-hand number of that `ports:`
+line in `docker-compose.yml`.
+
+### Developer mode (hot reload)
 
 Prerequisites: Python 3.13 + [uv](https://docs.astral.sh/uv/), Node 22, Docker (for Postgres).
+On Windows, use WSL2 for this mode (the async Postgres driver doesn't run on the Windows event
+loop), or stick to the Docker setup above.
 
 ```bash
 docker compose up -d db                       # Postgres on :5432 (user/pass/db: e2o)
@@ -63,7 +96,9 @@ npm install
 npm run dev                                   # http://localhost:3000 (proxies /api to :8000)
 ```
 
-Want a mailbox to play with? `docker compose --profile dev-imap up -d imap` (see docs/dev-imap.md).
+For a test mailbox in this mode, run `docker compose --profile dev-imap up -d imap`, seed it with
+`uv run python -m scripts.seed_dev_mailbox`, and connect it with server `localhost` (see
+docs/dev-imap.md).
 
 ## Checks
 

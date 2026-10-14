@@ -11,12 +11,13 @@ from datetime import UTC, datetime, timedelta
 
 from procrastinate import RetryStrategy
 from procrastinate.exceptions import AlreadyEnqueued
-from sqlalchemy import or_, select
+from sqlalchemy import and_, or_, select
 
 from app.config import get_settings
 from app.db import get_sessionmaker
 from app.jobs.app import job_app
 from app.models import Message, RawMessage, SourceConnection, SourceStatus
+from app.pipeline.email_parser import PARSER_VERSION
 from app.pipeline.normalize import normalize_raw_message
 from app.sources.base import SourceTemporaryError
 from app.sources.sync import sync_source
@@ -79,8 +80,8 @@ async def process_raw_message_job(raw_message_id: str) -> None:
 @job_app.periodic(cron="* * * * *", periodic_id="schedule_syncs")
 @job_app.task(name="schedule_syncs", queue="sync", queueing_lock="schedule_syncs")
 async def schedule_syncs(timestamp: int) -> None:
-    """Every minute: queue syncs that are due, and re-queue raw messages that never got
-    processed (e.g. the process was killed between storing and enqueueing)."""
+    """Every minute: queue syncs that are due, and (re)process raw messages that were never
+    processed or were parsed by an older parser version."""
     settings = get_settings()
     now = datetime.now(UTC)
     due_before = now - timedelta(minutes=settings.sync_interval_minutes)
@@ -103,9 +104,13 @@ async def schedule_syncs(timestamp: int) -> None:
                 select(RawMessage.id)
                 .outerjoin(Message, Message.raw_message_id == RawMessage.id)
                 .where(
-                    Message.id.is_(None),
                     RawMessage.media_type == "message/rfc822",
-                    RawMessage.fetched_at < now - SWEEP_AFTER,
+                    or_(
+                        # never processed (e.g. killed between storing and enqueueing)
+                        and_(Message.id.is_(None), RawMessage.fetched_at < now - SWEEP_AFTER),
+                        # parsed by an older parser: rebuild from the stored raw mail
+                        Message.normalizer_version < PARSER_VERSION,
+                    ),
                 )
                 .limit(SWEEP_BATCH)
             )
@@ -114,5 +119,5 @@ async def schedule_syncs(timestamp: int) -> None:
     for source_id in due:
         await enqueue_sync(source_id)
     if orphans:
-        log.info("re-queueing %d unprocessed raw messages", len(orphans))
+        log.info("queueing %d raw messages for (re)processing", len(orphans))
         await enqueue_processing(list(orphans))

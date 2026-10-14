@@ -8,19 +8,26 @@ You don't need a real mailbox to work on sync. Two options:
 docker compose --profile dev-imap up -d imap
 ```
 
-- IMAP `localhost:3143` (plain) and `localhost:3993` (SSL, self-signed certificate). SMTP is on `localhost:3025`.
-- Any username and password are accepted. Mailboxes are created when you first log in.
-- To connect it in the app, pick **Other (IMAP)** and enter server `localhost`, port `3993`, SSL. Then tick
-  "Allow this server's certificate" when the certificate warning appears (it is self-signed).
-- To put mail in it, send to `localhost:3025` over SMTP, or `APPEND` with any IMAP client. For example:
+- Ports: IMAP 3143 (plain) and 3993 (SSL, self-signed certificate), SMTP 3025.
+- Any username and password are accepted. A mailbox is created the first time you log in to it.
+- Fill it with realistic sample mail: RFQs with a PDF and a BOQ attachment, a Hindi/English
+  enquiry, a forwarded enquiry, a newsletter, a supplier invoice, an order follow-up, and a reply
+  in Sent.
 
-```python
-import imaplib, time
-c = imaplib.IMAP4("localhost", 3143); c.login("sales@example.com", "x")
-c.create("Sent")
-c.append("INBOX", None, imaplib.Time2Internaldate(time.time()),
-         b"From: buyer@customer.com\r\nSubject: RFQ for flanges\r\n\r\nPlease quote 100 nos.")
-```
+  ```bash
+  # app running in Docker
+  docker compose run --rm api python -m scripts.seed_dev_mailbox --host imap
+  # app running on your machine (developer mode)
+  cd backend && uv run python -m scripts.seed_dev_mailbox
+  ```
+
+  Running it twice adds the mail twice. Restart the `imap` container for an empty mailbox.
+- Connect it in the app with **Other (IMAP)**. Use email `sales@dcengineering.in` (the seeded
+  mailbox) with any password, port `3993`, SSL. Then tick "Allow this server's certificate" when the
+  certificate warning appears.
+  - Server name `imap` when the app runs in Docker. Inside the containers, `localhost` means the
+    container itself.
+  - Server name `localhost` when the backend runs on your machine.
 
 ## 2. Dovecot laid out like cPanel (used for the live integration tests)
 
