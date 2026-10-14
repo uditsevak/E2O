@@ -1,0 +1,84 @@
+[
+  {
+    "id": "gmail",
+    "label": "Gmail / Google Workspace",
+    "host": "imap.gmail.com",
+    "port": 993,
+    "security": "ssl",
+    "help": "Use an app password, not your normal password: Google Account → Security → 2-Step Verification → App passwords. One-click Google connection is coming soon.",
+    "help_url": "https://support.google.com/accounts/answer/185833"
+  },
+  {
+    "id": "zoho_in_org",
+    "label": "Zoho Mail (company domain, India)",
+    "host": "imappro.zoho.in",
+    "port": 993,
+    "security": "ssl",
+    "help": "Turn on IMAP in Zoho Mail → Settings → Mail Accounts → IMAP Access. If you use two-factor login, create an app password under Security → App Passwords."
+  },
+  {
+    "id": "zoho_in",
+    "label": "Zoho Mail (personal, India)",
+    "host": "imap.zoho.in",
+    "port": 993,
+    "security": "ssl",
+    "help": "Turn on IMAP in Zoho Mail → Settings → Mail Accounts → IMAP Access. If you use two-factor login, create an app password under Security → App Passwords."
+  },
+  {
+    "id": "zoho_com",
+    "label": "Zoho Mail (outside India)",
+    "host": "imappro.zoho.com",
+    "port": 993,
+    "security": "ssl",
+    "help": "Use imap.zoho.com for personal accounts. Turn on IMAP in Zoho Mail settings first."
+  },
+  {
+    "id": "godaddy",
+    "label": "GoDaddy Workspace Email",
+    "host": "imap.secureserver.net",
+    "port": 993,
+    "security": "ssl",
+    "help": "For GoDaddy's older Workspace Email. If your GoDaddy email is 'Microsoft 365 from GoDaddy', choose Outlook / Microsoft 365 instead."
+  },
+  {
+    "id": "rediffmail_pro",
+    "label": "Rediffmail Pro / Enterprise",
+    "host": "imap.rediffmailpro.com",
+    "port": 993,
+    "security": "ssl",
+    "help": "Use your full email address as the username. IMAP may need to be turned on by your Rediff administrator."
+  },
+  {
+    "id": "hostinger",
+    "label": "Hostinger",
+    "host": "imap.hostinger.com",
+    "port": 993,
+    "security": "ssl",
+    "help": "Use your full email address and mailbox password."
+  },
+  {
+    "id": "cpanel",
+    "label": "cPanel / website hosting email",
+    "host": null,
+    "port": 993,
+    "security": "ssl",
+    "help": "Usually mail.yourdomain.com. Find the exact server under 'Email Accounts → Connect Devices' in your hosting control panel."
+  },
+  {
+    "id": "microsoft",
+    "label": "Outlook / Microsoft 365",
+    "host": null,
+    "port": 993,
+    "security": "ssl",
+    "help": "Microsoft no longer allows password sign-in for most mailboxes. One-click Microsoft connection is coming soon.",
+    "available": false
+  },
+  {
+    "id": "other",
+    "label": "Other (IMAP)",
+    "host": null,
+    "port": 993,
+    "security": "ssl",
+    "help": "Ask your email provider or IT person for the IMAP server name. Port 993 with SSL is the most common."
+  }
+]

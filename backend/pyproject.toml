@@ -1,0 +1,65 @@
+[project]
+name = "e2o-backend"
+version = "0.1.0"
+description = "Enquiry Inbox backend: API, sync and processing pipeline"
+requires-python = ">=3.13"
+dependencies = [
+    "alembic>=1.20.0",
+    "argon2-cffi>=25.1.0",
+    "boto3>=1.43.114",
+    "charset-normalizer>=3.5.2",
+    "cryptography>=50.0.2",
+    "email-validator>=2.3.0",
+    "fastapi>=0.143.1",
+    "httpx>=0.28.1",
+    "procrastinate>=3.10.0",
+    "psycopg[binary,pool]>=3.3.6",
+    "pydantic>=2.14.1",
+    "pydantic-settings>=2.16.0",
+    "pyjwt>=2.15.1",
+    "sqlalchemy[asyncio]>=2.1.4",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[dependency-groups]
+dev = [
+    "moto[s3]>=5.2.4",
+    "mypy>=2.4.0",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "ruff>=0.17.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning:procrastinate.*"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "BLE", "ASYNC", "S", "RUF"]
+ignore = [
+    "S101",   # assert is fine
+    "RUF001", # “smart quotes” in user-facing messages are intentional
+    "RUF002",
+    "RUF003",
+    "B008",   # FastAPI Depends() in defaults
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S105", "S106", "S107", "S108", "S311"]
+"alembic/versions/**" = ["E501", "I001", "UP"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.mypy]
+python_version = "3.13"
+plugins = []
+ignore_missing_imports = true
+check_untyped_defs = true

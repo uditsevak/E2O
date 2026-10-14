@@ -1,0 +1,71 @@
+# Full stack:            docker compose up --build        → http://localhost:3000
+# Just the database:     docker compose up -d db          (run API/worker/web locally, see README)
+# Test IMAP server:      docker compose --profile dev-imap up -d imap   (see docs/dev-imap.md)
+name: enquiry-inbox
+
+x-backend-env: &backend-env
+  DATABASE_URL: postgresql+psycopg://e2o:e2o@db:5432/e2o
+  APP_URL: ${APP_URL:-http://localhost:3000}
+  SECRET_KEY: ${SECRET_KEY:-dev-insecure-secret-key-change-me}
+  SECRETS_ENCRYPTION_KEYS: ${SECRETS_ENCRYPTION_KEYS:-s_puiGGRJN_voMN6V4QOUbOjoCOI5GrpiNbhmLC4Oks=}
+  GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+  GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: e2o
+      POSTGRES_PASSWORD: e2o
+      POSTGRES_DB: e2o
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U e2o -d e2o"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  migrate:
+    build: ./backend
+    command: ["alembic", "upgrade", "head"]
+    environment: *backend-env
+    depends_on:
+      db: { condition: service_healthy }
+
+  api:
+    build: ./backend
+    environment: *backend-env
+    ports: ["8000:8000"]
+    volumes: [blobs:/data/blobs]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  worker:
+    build: ./backend
+    command: ["python", "-m", "app.jobs.worker"]
+    environment: *backend-env
+    volumes: [blobs:/data/blobs]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  web:
+    build:
+      context: ./frontend
+      args: { API_URL: http://api:8000 }
+    ports: ["3000:3000"]
+    depends_on: [api]
+
+  # A throwaway IMAP server for trying the connect flow (any username/password is accepted).
+  imap:
+    image: greenmail/standalone:2.1.5
+    profiles: ["dev-imap"]
+    environment:
+      GREENMAIL_OPTS: >-
+        -Dgreenmail.setup.test.all -Dgreenmail.hostname=0.0.0.0
+        -Dgreenmail.auth.disabled -Dgreenmail.verbose
+    ports: ["3143:3143", "3993:3993", "3025:3025"]
+
+volumes:
+  pgdata:
+  blobs:
