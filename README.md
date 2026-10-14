@@ -71,9 +71,16 @@ on your computer, so the mail stays there.
 | See what the sync worker is doing | `docker compose logs -f worker` |
 | Invite a teammate on the same computer | Team → Invite, then open the link in a private window |
 
-If startup fails with "port is already allocated", another program is using port 5432 (often a
-locally installed Postgres), 3000 or 8000. Stop it, or change the left-hand number of that `ports:`
-line in `docker-compose.yml`.
+If startup fails with "port is already allocated" or "address already in use", another program is
+using one of the ports. The app uses 3000 (web), 8000 (API) and 5433 (database), plus 3143, 3993 and 3025
+for the test mailbox, all on `localhost` only. Pick free ones, for example:
+
+```bash
+E2O_WEB_PORT=3100 E2O_API_PORT=8100 E2O_DB_PORT=5434 docker compose --profile dev-imap up -d
+# then open http://localhost:3100
+```
+
+To see what is holding a port on a Mac: `lsof -nP -iTCP:3000 -sTCP:LISTEN`.
 
 ### Developer mode (hot reload)
 
@@ -82,7 +89,7 @@ On Windows, use WSL2 for this mode (the async Postgres driver doesn't run on the
 loop), or stick to the Docker setup above.
 
 ```bash
-docker compose up -d db                       # Postgres on :5432 (user/pass/db: e2o)
+docker compose up -d db                       # Postgres on localhost:5433 (user/pass/db: e2o)
 
 cd backend
 cp .env.example .env                          # dev defaults work as-is

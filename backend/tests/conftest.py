@@ -6,7 +6,7 @@ from typing import Any
 
 # Configure before any app module reads settings.
 os.environ.setdefault("ENV", "test")
-os.environ.setdefault("DATABASE_URL", "postgresql+psycopg://e2o:e2o@localhost:5432/e2o_test")
+os.environ.setdefault("DATABASE_URL", "postgresql+psycopg://e2o:e2o@localhost:5433/e2o_test")
 os.environ["STORAGE_BACKEND"] = "local"
 os.environ["STORAGE_LOCAL_DIR"] = tempfile.mkdtemp(prefix="e2o-blobs-")
 os.environ["APP_URL"] = "http://testserver"

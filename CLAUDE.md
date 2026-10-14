@@ -30,7 +30,7 @@ with messages a non-technical owner understands. Register it in `app/sources/reg
 
 ## Commands
 
-- Backend: `cd backend && uv run pytest` (Postgres at localhost:5432, db `e2o_test`),
+- Backend: `cd backend && uv run pytest` (compose Postgres at localhost:5433, db `e2o_test`),
   `uv run ruff check . && uv run ruff format . && uv run mypy app`, `uv run alembic revision --autogenerate -m "..."`.
 - Live IMAP tests: see `docs/dev-imap.md` (`E2O_IMAP_TEST=...`).
 - Frontend: `cd frontend && npm run lint && npm run typecheck && npm run build`. After API schema

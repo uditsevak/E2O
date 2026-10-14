@@ -1,11 +1,15 @@
 # Full stack:            docker compose up --build        → http://localhost:3000
 # Just the database:     docker compose up -d db          (run API/worker/web locally, see README)
 # Test IMAP server:      docker compose --profile dev-imap up -d imap   (see docs/dev-imap.md)
+#
+# Ports are published on 127.0.0.1 only (not your whole network). Postgres uses host port 5433 so it
+# doesn't clash with a Postgres already installed on your machine. If a port is taken, override it,
+# e.g. `E2O_WEB_PORT=3100 docker compose up -d` (also: E2O_API_PORT, E2O_DB_PORT).
 name: enquiry-inbox
 
 x-backend-env: &backend-env
   DATABASE_URL: postgresql+psycopg://e2o:e2o@db:5432/e2o
-  APP_URL: ${APP_URL:-http://localhost:3000}
+  APP_URL: ${APP_URL:-http://localhost:${E2O_WEB_PORT:-3000}}
   SECRET_KEY: ${SECRET_KEY:-dev-insecure-secret-key-change-me}
   SECRETS_ENCRYPTION_KEYS: ${SECRETS_ENCRYPTION_KEYS:-s_puiGGRJN_voMN6V4QOUbOjoCOI5GrpiNbhmLC4Oks=}
   GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
@@ -18,7 +22,7 @@ services:
       POSTGRES_USER: e2o
       POSTGRES_PASSWORD: e2o
       POSTGRES_DB: e2o
-    ports: ["5432:5432"]
+    ports: ["127.0.0.1:${E2O_DB_PORT:-5433}:5432"]
     volumes: [pgdata:/var/lib/postgresql/data]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U e2o -d e2o"]
@@ -36,7 +40,7 @@ services:
   api:
     build: ./backend
     environment: *backend-env
-    ports: ["8000:8000"]
+    ports: ["127.0.0.1:${E2O_API_PORT:-8000}:8000"]
     volumes: [blobs:/data/blobs]
     depends_on:
       migrate: { condition: service_completed_successfully }
@@ -53,7 +57,7 @@ services:
     build:
       context: ./frontend
       args: { API_URL: http://api:8000 }
-    ports: ["3000:3000"]
+    ports: ["127.0.0.1:${E2O_WEB_PORT:-3000}:3000"]
     depends_on: [api]
 
   # A throwaway IMAP server for trying the connect flow (any username/password is accepted).
@@ -64,7 +68,7 @@ services:
       GREENMAIL_OPTS: >-
         -Dgreenmail.setup.test.all -Dgreenmail.hostname=0.0.0.0
         -Dgreenmail.auth.disabled -Dgreenmail.verbose
-    ports: ["3143:3143", "3993:3993", "3025:3025"]
+    ports: ["127.0.0.1:3143:3143", "127.0.0.1:3993:3993", "127.0.0.1:3025:3025"]
 
 volumes:
   pgdata:

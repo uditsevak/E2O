@@ -68,3 +68,4 @@ new line that supersedes it. Don't rewrite history.
 
 ### Local setup
 - **The first-run path is Docker only** (`docker compose --profile dev-imap up --build`), with a GreenMail test mailbox and a seeder script with realistic sample enquiries. Anyone can see the product working in a few commands, without a real mailbox.
+- **Compose publishes ports on 127.0.0.1 only, Postgres on host port 5433, all overridable** (`E2O_WEB_PORT`, `E2O_API_PORT`, `E2O_DB_PORT`). Developer Macs often already run Postgres on 5432 (first install failed on exactly this), and the dev database shouldn't be reachable from the local network.

@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     # Public URL of the web app. The API is served under {app_url}/api via the frontend proxy,
     # so cookies and OAuth redirects are same-origin.
     app_url: str = "http://localhost:3000"
-    database_url: str = "postgresql+psycopg://e2o:e2o@localhost:5432/e2o"
+    database_url: str = "postgresql+psycopg://e2o:e2o@localhost:5433/e2o"
 
     # Signs short-lived state (OAuth state cookie).
     secret_key: SecretStr = SecretStr(_DEV_SECRET_KEY)
